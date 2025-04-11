@@ -3,6 +3,10 @@ package fetcher
 import (
 	"context"
 	"github.com/lostmyescape/news-tg-bot/internal/model"
+	"github.com/lostmyescape/news-tg-bot/internal/source"
+	"log"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -26,4 +30,117 @@ type Fetcher struct {
 
 	fetchInterval  time.Duration
 	filterKeywords []string
+}
+
+func New(
+	articleStorage ArticleStorage,
+	sourceProvider SourceProvider,
+	fetchInterval time.Duration,
+	filterKeywords []string,
+) *Fetcher {
+	return &Fetcher{
+		articles:       articleStorage,
+		sources:        sourceProvider,
+		fetchInterval:  fetchInterval,
+		filterKeywords: filterKeywords,
+	}
+}
+
+// Start запускает Fetch
+func (f *Fetcher) Start(ctx context.Context) error {
+	ticker := time.NewTicker(f.fetchInterval)
+	defer ticker.Stop()
+
+	if err := f.Fetch(ctx); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if err := f.Fetch(ctx); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// Fetch загружает данные из всех источников, оборачивает каждый источник в горутину,
+// парсит rss-ленту и передает результат в процессинг
+func (f *Fetcher) Fetch(ctx context.Context) error {
+	sources, err := f.sources.Sources(ctx)
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+
+	for _, src := range sources {
+		wg.Add(1)
+
+		go func(source Source) {
+			defer wg.Done()
+
+			items, err := source.Fetch(ctx)
+			if err != nil {
+				log.Printf("Error: fetching items from source %s: %v", source.Name(), err)
+				return
+			}
+
+			if err := f.processItems(ctx, source, items); err != nil {
+				log.Printf("Error: processing items from source %s: %v", source.Name(), err)
+				return
+			}
+
+		}(source.NewRSSSourceFromModel(src))
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+// processItems логика всего процесса - нормализует дату, проверяет, не нужно ли пропустить айтем,
+// сохраняет структуру
+func (f *Fetcher) processItems(ctx context.Context, source Source, items []model.Item) error {
+	for _, item := range items {
+		item.Date = item.Date.UTC()
+
+		if f.itemShouldBeSkipped(item) {
+			continue
+		}
+
+		if err := f.articles.Store(ctx, model.Article{
+			SourceID:    source.ID(),
+			Title:       item.Title,
+			Link:        item.Link,
+			Summary:     item.Summary,
+			PublishedAt: item.Date,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// itemShouldBeSkipped пропускает элемент, если категория или заголовок содержит ключевые слова
+func (f *Fetcher) itemShouldBeSkipped(item model.Item) bool {
+	categoriesSet := make(map[string]struct{})
+
+	for _, category := range item.Categories {
+		categoriesSet[category] = struct{}{}
+	}
+
+	titleLower := strings.ToLower(item.Title)
+
+	for _, keyword := range f.filterKeywords {
+		if _, found := categoriesSet[keyword]; found || strings.Contains(titleLower, keyword) {
+			return true
+		}
+
+	}
+
+	return false
 }
