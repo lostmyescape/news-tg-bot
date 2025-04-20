@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lostmyescape/news-tg-bot/internal/model"
+	"github.com/lostmyescape/news-tg-bot/logger"
 	"github.com/samber/lo"
 	"time"
 )
@@ -35,7 +36,7 @@ func (s *ArticlePostgresStorage) Store(ctx context.Context, article model.Articl
 }
 
 // AllNotPosted покажет статьи, которые еще не были опубликованы
-func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Time, limit uint64) ([]model.Article, error) {
+func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Time) ([]model.Article, error) {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
 		return nil, err
@@ -43,17 +44,18 @@ func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Ti
 	defer conn.Close()
 
 	var articles []dbArticle
+
 	if err := conn.SelectContext(
 		ctx,
 		&articles,
 		`SELECT * FROM articles
-         WHERE posted_at IS NULL 
-           AND published_at >= $1::timestamp 
-         ORDER BY published_at DESC 
-         LIMIT $2`, since.UTC().Format(time.RFC3339),
-	); err != nil {
+         WHERE posted_at IS NULL
+         ORDER BY published_at DESC
+         `); err != nil {
 		return nil, err
 	}
+
+	logger.Log.Infof("notifier: AllNotPosted since %v", since)
 
 	return lo.Map(articles, func(article dbArticle, _ int) model.Article {
 		return model.Article{
@@ -67,10 +69,11 @@ func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Ti
 			CreatedAt:   article.CreatedAt,
 		}
 	}), nil
+
 }
 
-// MarkPosted отметка статьи о том, что она была запощена
-func (s *ArticlePostgresStorage) MarkPosted(ctx context.Context, id int64) error {
+// MarkAsPosted отметка статьи о том, что она была запощена
+func (s *ArticlePostgresStorage) MarkAsPosted(ctx context.Context, article model.Article) error {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
 		return err
@@ -79,8 +82,9 @@ func (s *ArticlePostgresStorage) MarkPosted(ctx context.Context, id int64) error
 
 	if _, err := conn.ExecContext(
 		ctx,
-		`UPDATE articles SET posted_at = $1::timestamp WHERE id = $2`,
+		`UPDATE articles SET posted_at = $1::timestamp WHERE id = $2;`,
 		time.Now().UTC().Format(time.RFC3339),
+		article.ID,
 	); err != nil {
 		return err
 	}
