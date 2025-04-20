@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/lostmyescape/news-tg-bot/internal/model"
 	"github.com/lostmyescape/news-tg-bot/internal/source"
+	"github.com/lostmyescape/news-tg-bot/logger"
 	"log"
 	"strings"
 	"sync"
@@ -94,6 +95,8 @@ func (f *Fetcher) Fetch(ctx context.Context) error {
 				return
 			}
 
+			logger.Log.Infof("fetcher: processed items for source %s", source.Name())
+
 		}(source.NewRSSSourceFromModel(src))
 	}
 
@@ -122,6 +125,8 @@ func (f *Fetcher) processItems(ctx context.Context, source Source, items []model
 			return err
 		}
 	}
+	logger.Log.Infof("fetcher: got %d items from %s", len(items), source.Name())
+
 	return nil
 }
 
