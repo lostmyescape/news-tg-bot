@@ -71,10 +71,10 @@ func main() {
 	// views registration
 	newsBot := botkit.New(botAPI)
 	newsBot.RegisterCmdView("start", bot.ViewCmdStart())
-	newsBot.RegisterCmdView("addsource", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdAddSource(sourceStorage)))
-	newsBot.RegisterCmdView("listsources", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdListSources(sourceStorage)))
-	newsBot.RegisterCmdView("editsource", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdEditSource(sourceStorage)))
-	newsBot.RegisterCmdView("deletesource", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdDeleteSource(sourceStorage)))
+	newsBot.RegisterCmdView("addsource", middleware.AdminOnly(config.Get().Admins, bot.ViewCmdAddSource(sourceStorage)))
+	newsBot.RegisterCmdView("listsources", middleware.AdminOnly(config.Get().Admins, bot.ViewCmdListSources(sourceStorage)))
+	newsBot.RegisterCmdView("editsource", middleware.AdminOnly(config.Get().Admins, bot.ViewCmdEditSource(sourceStorage)))
+	newsBot.RegisterCmdView("deletesource", middleware.AdminOnly(config.Get().Admins, bot.ViewCmdDeleteSource(sourceStorage)))
 
 	// start fetcher
 	go func(ctx context.Context) {
