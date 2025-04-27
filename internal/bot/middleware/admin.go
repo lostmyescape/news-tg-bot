@@ -7,22 +7,12 @@ import (
 )
 
 // AdminOnly middleware provides to commands for admins only
-func AdminOnly(channelID int64, next botkit.ViewFunc) botkit.ViewFunc {
+func AdminOnly(adminsID []int64, next botkit.ViewFunc) botkit.ViewFunc {
 	return func(ctx context.Context, bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
-		admins, err := bot.GetChatAdministrators(
-			tgbotapi.ChatAdministratorsConfig{
-				ChatConfig: tgbotapi.ChatConfig{
-					ChatID: channelID,
-				},
-			})
-
-		if err != nil {
-			return err
-		}
 
 		// check if the person who sent the command is in the list of admins
-		for _, admin := range admins {
-			if admin.User.ID == update.Message.From.ID {
+		for _, admin := range adminsID {
+			if admin == update.Message.From.ID {
 				return next(ctx, bot, update)
 			}
 		}
