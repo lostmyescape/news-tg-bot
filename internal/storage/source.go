@@ -16,6 +16,36 @@ func NewSourceStorage(db *sqlx.DB) *SourcePostgresStorage {
 	return &SourcePostgresStorage{db: db}
 }
 
+// Edit edits source by id and returns an id
+func (s *SourcePostgresStorage) Edit(ctx context.Context, source model.Source) (int64, error) {
+	conn, err := s.db.Connx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+
+	var id int64
+
+	row := conn.QueryRowContext(
+		ctx,
+		`UPDATE sources SET (name, feed_url) = ($1, $2) WHERE id = $3 RETURNING id`,
+		source.Name,
+		source.FeedURL,
+		source.ID,
+	)
+
+	if err := row.Err(); err != nil {
+		return 0, err
+	}
+
+	if err := row.Scan(&id); err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+// Sources returns all from sources
 func (s *SourcePostgresStorage) Sources(ctx context.Context) ([]model.Source, error) {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
@@ -32,6 +62,7 @@ func (s *SourcePostgresStorage) Sources(ctx context.Context) ([]model.Source, er
 	return lo.Map(sources, func(source dbSource, _ int) model.Source { return model.Source(source) }), nil
 }
 
+// SourceById selects source by id
 func (s *SourcePostgresStorage) SourceById(ctx context.Context, id int64) (*model.Source, error) {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
@@ -48,6 +79,7 @@ func (s *SourcePostgresStorage) SourceById(ctx context.Context, id int64) (*mode
 
 }
 
+// Add adds source to database and returns an id
 func (s *SourcePostgresStorage) Add(ctx context.Context, source model.Source) (int64, error) {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
@@ -77,19 +109,20 @@ func (s *SourcePostgresStorage) Add(ctx context.Context, source model.Source) (i
 	return id, nil
 }
 
-func (s *SourcePostgresStorage) Delete(ctx context.Context, id int64) error {
+// Delete deletes source by id
+func (s *SourcePostgresStorage) Delete(ctx context.Context, id int64) (int64, error) {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	defer conn.Close()
 
 	if _, err := conn.ExecContext(ctx, `DELETE FROM sources WHERE id = $1`, id); err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return id, nil
 }
 
 type dbSource struct {

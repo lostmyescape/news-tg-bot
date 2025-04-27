@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lostmyescape/news-tg-bot/internal/model"
-	"github.com/lostmyescape/news-tg-bot/logger"
 	"github.com/samber/lo"
 	"time"
 )
@@ -18,7 +17,7 @@ func NewArticleStorage(db *sqlx.DB) *ArticlePostgresStorage {
 	return &ArticlePostgresStorage{db: db}
 }
 
-// Store сохранение статьи
+// Store save an article
 func (s *ArticlePostgresStorage) Store(ctx context.Context, article model.Article) error {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
@@ -28,15 +27,20 @@ func (s *ArticlePostgresStorage) Store(ctx context.Context, article model.Articl
 	if _, err := conn.ExecContext(ctx,
 		`INSERT INTO articles (source_id, title, link, summary, published_at)
 			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT DO NOTHING`, article.SourceID, article.Title, article.Link, article.Summary, article.PublishedAt,
+			ON CONFLICT DO NOTHING`,
+		article.SourceID,
+		article.Title,
+		article.Link,
+		article.Summary,
+		article.PublishedAt,
 	); err != nil {
 		return err
 	}
 	return nil
 }
 
-// AllNotPosted покажет статьи, которые еще не были опубликованы
-func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Time) ([]model.Article, error) {
+// AllNotPosted will show articles that have not yet been published
+func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context) ([]model.Article, error) {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {
 		return nil, err
@@ -55,8 +59,6 @@ func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Ti
 		return nil, err
 	}
 
-	logger.Log.Infof("notifier: AllNotPosted since %v", since)
-
 	return lo.Map(articles, func(article dbArticle, _ int) model.Article {
 		return model.Article{
 			ID:          article.ID,
@@ -69,10 +71,9 @@ func (s *ArticlePostgresStorage) AllNotPosted(ctx context.Context, since time.Ti
 			CreatedAt:   article.CreatedAt,
 		}
 	}), nil
-
 }
 
-// MarkAsPosted отметка статьи о том, что она была запощена
+// MarkAsPosted notes an article that was posted
 func (s *ArticlePostgresStorage) MarkAsPosted(ctx context.Context, article model.Article) error {
 	conn, err := s.db.Connx(ctx)
 	if err != nil {

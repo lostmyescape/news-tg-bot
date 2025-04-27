@@ -13,7 +13,7 @@ type RSSSource struct {
 	SourceName string
 }
 
-// NewRSSSourceFromModel принимает модельку из слоя данных, и на ее основе создает RSSSource
+// NewRSSSourceFromModel accepts a model and creates an RSSSource based on it
 func NewRSSSourceFromModel(m model.Source) RSSSource {
 	return RSSSource{
 		URL:        m.FeedURL,
@@ -22,7 +22,7 @@ func NewRSSSourceFromModel(m model.Source) RSSSource {
 	}
 }
 
-// Fetch загружает RSS-ленту по s.URL, преобразовывает каждый rss. Item в model. Item, возвращает слайс этих айтемов
+// Fetch loads RSS-feed by s.URL, converts each rss item to model item, returns a slice of these items
 func (s RSSSource) Fetch(ctx context.Context) ([]model.Item, error) {
 	feed, err := s.loadFeed(ctx, s.URL)
 	if err != nil {
@@ -41,7 +41,10 @@ func (s RSSSource) Fetch(ctx context.Context) ([]model.Item, error) {
 	}), nil
 }
 
-// loadFeed делает асинхронную загрузку RSS-ленты
+// loadFeed does async rss feed loading,
+// returns an error if the context is canceled,
+// returns an error if parsing failed,
+// returns a feed if successful
 func (s RSSSource) loadFeed(ctx context.Context, url string) (*rss.Feed, error) {
 	var (
 		feedCh = make(chan *rss.Feed)
