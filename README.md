@@ -37,11 +37,15 @@ go mod tidy
 docker-compose up -d
 ```
 4. Configure the application
-- Update config.local.hcl with your data
+- Update config.local.hcl: add your telegram id to the Admins field
 5. Run application:
 ```bash
 go run cmd/main.go
 ```
+6. Telegram channel and bot links
+- [telegram bot](https://t.me/nnnewsfeed_bot)
+- [telegram channel](https://t.me/golangnewsbott)
+
 ## Important Notes
 - Only users whose Telegram IDs are listed in the admins array will have access to admin commands.
 - Make sure your bot is added to the desired channel/group and has sufficient permissions.
