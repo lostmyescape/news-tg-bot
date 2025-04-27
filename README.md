@@ -19,7 +19,7 @@ The project is a telegram bot that:
 
 ## Main libraries
 
-- [telegram-bot-api](github.com/go-telegram-bot-api/telegram-bot-api) - working with the Telegram API
+- [telegram-bot-api](go-telegram-bot-api/telegram-bot-api) - working with the Telegram API
 - [Zap](github.com/uber-go/zap) - Logging
 - [OpenAI API](github.com/sashabaranov/go-openai) - working with the OpenAI API
 - [RSS](github.com/SlyMarbo/rss) - RSS parsing
