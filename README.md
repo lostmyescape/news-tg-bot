@@ -19,10 +19,10 @@ The project is a telegram bot that:
 
 ## Main libraries
 
-- [telegram-bot-api](go-telegram-bot-api/telegram-bot-api) - working with the Telegram API
-- [Zap](github.com/uber-go/zap) - Logging
-- [OpenAI API](github.com/sashabaranov/go-openai) - working with the OpenAI API
-- [RSS](github.com/SlyMarbo/rss) - RSS parsing
+- [telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api) - working with the Telegram API
+- [Zap](https://github.com/uber-go/zap) - Logging
+- [OpenAI API](https://github.com/sashabaranov/go-openai) - working with the OpenAI API
+- [RSS](https://github.com/SlyMarbo/rss) - RSS parsing
 
 1. Clone repository
 ```bash
