@@ -29,7 +29,16 @@ func (b *Bot) RegisterCmdView(cmd string, view ViewFunc) {
 	b.cmdViews[cmd] = view
 }
 
+// Run runs bot, check an updates from channel
 func (b *Bot) Run(ctx context.Context) error {
+
+	// webhook deleted to perform updates via api
+	_, err := b.api.Request(tgbotapi.DeleteWebhookConfig{})
+	if err != nil {
+		logger.Log.Errorw("failed to remove webhook", "err", err)
+		return err
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -47,6 +56,7 @@ func (b *Bot) Run(ctx context.Context) error {
 	}
 }
 
+// handleUpdate processes a message from the user
 func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	defer func() {
 		if p := recover(); p != nil {

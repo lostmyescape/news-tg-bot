@@ -27,7 +27,9 @@ func NewOpenAiSummarizer(apiKey string, prompt string) *OpenAISummarizer {
 	return s
 }
 
+// Summarize sends text to openai and receives a summary of that text
 func (s *OpenAISummarizer) Summarize(ctx context.Context, text string) (string, error) {
+	// race conditions
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -35,6 +37,7 @@ func (s *OpenAISummarizer) Summarize(ctx context.Context, text string) (string, 
 		return "", nil
 	}
 
+	//
 	request := openai.ChatCompletionRequest{
 		Model: "gpt-3.5-turbo",
 		Messages: []openai.ChatCompletionMessage{

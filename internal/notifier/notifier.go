@@ -16,7 +16,7 @@ import (
 )
 
 type ArticleProvider interface {
-	AllNotPosted(ctx context.Context, since time.Time) ([]model.Article, error)
+	AllNotPosted(ctx context.Context) ([]model.Article, error)
 	MarkAsPosted(ctx context.Context, article model.Article) error
 }
 
@@ -72,10 +72,9 @@ func (n *Notifier) Start(ctx context.Context) error {
 	}
 }
 
-// SelectAndSendArticle выбирает еще не запощенную статью
+// SelectAndSendArticle selects an article that has not yet been published
 func (n *Notifier) SelectAndSendArticle(ctx context.Context) error {
-	logger.Log.Info("notifier: SelectAndSendArticle called")
-	topOneArticles, err := n.articles.AllNotPosted(ctx, time.Now().Add(-n.lookupTimeWindow))
+	topOneArticles, err := n.articles.AllNotPosted(ctx)
 	if err != nil {
 		return err
 	}
@@ -138,9 +137,6 @@ func (n *Notifier) sendArticle(article model.Article, summary string) error {
 	msg.ParseMode = tgbotapi.ModeMarkdownV2
 
 	_, err := n.bot.Send(msg)
-	//if err != nil {
-	//	return err
-	//}
 
 	logger.Log.Infof("notifier: sending message to channel %d", n.channelID)
 	if err != nil {

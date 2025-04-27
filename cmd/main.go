@@ -7,9 +7,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/lostmyescape/news-tg-bot/internal/bot"
+	"github.com/lostmyescape/news-tg-bot/internal/bot/middleware"
 	"github.com/lostmyescape/news-tg-bot/internal/botkit"
 	"github.com/lostmyescape/news-tg-bot/internal/config"
-	fetcher2 "github.com/lostmyescape/news-tg-bot/internal/fetcher"
+	"github.com/lostmyescape/news-tg-bot/internal/fetcher"
 	"github.com/lostmyescape/news-tg-bot/internal/notifier"
 	"github.com/lostmyescape/news-tg-bot/internal/storage"
 	"github.com/lostmyescape/news-tg-bot/internal/summary"
@@ -23,12 +24,14 @@ func main() {
 	logger.Init()
 	logger.Log.Infow("Logger initialized", "env", "dev")
 
+	// get telegram token
 	token := config.Get().TelegramBotToken
 	if token == "" {
 		logger.Log.Warn("telegram bot token is empty, bot won't be started")
 		return
 	}
 
+	// create a bot
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		logger.Log.Errorw("failed to create bot", "err", err)
@@ -43,16 +46,16 @@ func main() {
 	defer db.Close()
 
 	var (
-		articleStorage = storage.NewArticleStorage(db)
-		sourceStorage  = storage.NewSourceStorage(db)
-		fetcher        = fetcher2.New(
-			articleStorage,
+		articleSaver  = storage.NewArticleStorage(db)
+		sourceStorage = storage.NewSourceStorage(db)
+		f             = fetcher.New(
+			articleSaver,
 			sourceStorage,
 			config.Get().FetchInterval,
 			config.Get().FilterKeywords,
 		)
 		n = notifier.New(
-			articleStorage,
+			articleSaver,
 			summary.NewOpenAiSummarizer(config.Get().OpenAIKey, config.Get().OpenAIPrompt),
 			botAPI,
 			config.Get().NotificationInterval,
@@ -61,14 +64,21 @@ func main() {
 		)
 	)
 
+	// application shutdown
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	// views registration
 	newsBot := botkit.New(botAPI)
 	newsBot.RegisterCmdView("start", bot.ViewCmdStart())
-	// запуск fetcher
+	newsBot.RegisterCmdView("addsource", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdAddSource(sourceStorage)))
+	newsBot.RegisterCmdView("listsources", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdListSources(sourceStorage)))
+	newsBot.RegisterCmdView("editsource", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdEditSource(sourceStorage)))
+	newsBot.RegisterCmdView("deletesource", middleware.AdminOnly(config.Get().TelegramChannelID, bot.ViewCmdDeleteSource(sourceStorage)))
+
+	// start fetcher
 	go func(ctx context.Context) {
-		if err := fetcher.Start(ctx); err != nil {
+		if err := f.Start(ctx); err != nil {
 			if !errors.Is(err, context.Canceled) {
 				logger.Log.Errorw("failed to start fetcher", "err", err)
 				return
@@ -78,7 +88,7 @@ func main() {
 		}
 	}(ctx)
 
-	// запуск notifier
+	// start notifier
 	go func(ctx context.Context) {
 		if err := n.Start(ctx); err != nil {
 			if !errors.Is(err, context.Canceled) {
@@ -90,6 +100,7 @@ func main() {
 		}
 	}(ctx)
 
+	// start bot
 	if err := newsBot.Run(ctx); err != nil {
 		if !errors.Is(err, context.Canceled) {
 			logger.Log.Errorw("failed to run bot:", "err", err)
