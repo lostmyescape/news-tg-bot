@@ -8,7 +8,7 @@ The project is a telegram bot that:
 
 ## Technology stack
 
-- Go 1.22.4
+- Go 1.23.4
 - Telegram Bot Api
 - OpenAI API
 - Zap Logger
@@ -28,7 +28,7 @@ The project is a telegram bot that:
 ```bash
 git clone https://github.com/lostmyescape/news-tg-bot
 ```
-2 Install dependecies
+2 Install dependencies
 ```bash
 go mod tidy
 ```
