@@ -1,53 +1,50 @@
-# Telegram Bot For Summarization
+# Телеграм-бот для автоматической сборки новостей
 
-The project is a telegram bot that:
-- Automatically collects news from RSS sources.
-- Publishes them into a telegram channel.
-- Generates short news summaries using GPT-3.5.
-- Managed via commands for administration (adding/editing sources)
+Проект построен на базе Go, который:
+- Автоматически собирает новости из RSS-источников.
+- Публикует их в телеграм-канале.
+- Генерирует саммари новостей с помощью GPT-3.5.
+- Управляется с помощью команд для администрирования (добавление/редактирование источников)
 
-## Technology stack
+## Требования
 
 - Go 1.23.4
-- Telegram Bot Api
-- OpenAI API
-- Zap Logger
 - PostgreSQL
-- Rss parsing
 - Docker
-- CI/CD: GitHub Actions
 
-## Main libraries
+## Основные библиотеки
 
-- [telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api) - working with the Telegram API
-- [Zap](https://github.com/uber-go/zap) - Logging
-- [OpenAI API](https://github.com/sashabaranov/go-openai) - working with the OpenAI API
-- [RSS](https://github.com/SlyMarbo/rss) - RSS parsing
+- [telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api) - работа с Telegram API
+- [Zap](https://github.com/uber-go/zap) - Логгирование
+- [OpenAI API](https://github.com/sashabaranov/go-openai) - работа с OpenAI API
+- [RSS](https://github.com/SlyMarbo/rss) - RSS парсинг
 
-1. Clone repository
+## Запуск проекта
+
+1. Скопируйте репозиторий
 ```bash
 git clone https://github.com/lostmyescape/news-tg-bot
 ```
-2 Install dependencies
+2 Обновите зависимости
 ```bash
 go mod tidy
 ```
-3. Launch the database using Docker
+3. Запустите базу данных в Docker
 ```bash
 docker-compose up -d
 ```
-4. Configure the application
-- Update config.local.hcl: add your telegram id to the Admins field
-5. Run application:
+4. Настройка приложения
+- Обновите config.local.hcl: добавьте свой telegram id в поле "Администраторы"
+5. Запустите приложение:
 ```bash
 go run cmd/main.go
 ```
-6. Telegram channel and bot links
+6. Ссылки на бота и канал
 - [telegram bot](https://t.me/nnnewsfeed_bot)
 - [telegram channel](https://t.me/golangnewsbott)
 
-## Important Notes
-- Only users whose Telegram IDs are listed in the admins array will have access to admin commands.
-- Make sure your bot is added to the desired channel/group and has sufficient permissions.
+## Важно!
+- Только пользователи, чьи идентификаторы Telegram указаны в списке администраторов, будут иметь доступ к командам администратора.
+- Убедитесь, что ваш бот добавлен в нужный канал/группу и имеет достаточные права доступа.
 
 
